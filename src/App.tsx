@@ -43,7 +43,10 @@ const SLIDERS: SliderConfig[] = [
   { key: 'magenta', label: '紫红偏色', min: 0, max: 100, step: 1, format: (v) => `${v}%` },
   { key: 'bloom', label: '高光溢出', min: 0, max: 100, step: 1, format: (v) => `${v}%` },
   { key: 'motion', label: '运动拖影', min: 0, max: 100, step: 1, format: (v) => `${v}%` },
-  { key: 'grain', label: '数码颗粒', min: 0, max: 100, step: 1, format: (v) => `${v}%` },
+  { key: 'lowResolution', label: '低清晰度', min: 0, max: 100, step: 1, format: (v) => `${v}%` },
+  { key: 'grain', label: '亮度噪点', min: 0, max: 100, step: 1, format: (v) => `${v}%` },
+  { key: 'noiseRoughness', label: '噪点粗糙度', min: 0, max: 100, step: 1, format: (v) => `${v}%` },
+  { key: 'colorNoise', label: '彩色噪声', min: 0, max: 100, step: 1, format: (v) => `${v}%` },
   { key: 'fade', label: '褪色', min: 0, max: 100, step: 1, format: (v) => `${v}%` },
   { key: 'softness', label: '柔焦', min: 0, max: 100, step: 1, format: (v) => `${v}%` },
   { key: 'vignette', label: '暗角', min: 0, max: 100, step: 1, format: (v) => `${v}%` },
@@ -72,7 +75,7 @@ export default function App() {
   const [showOriginal, setShowOriginal] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [format, setFormat] = useState<OutputFormat>('jpeg')
-  const [quality, setQuality] = useState(0.9)
+  const [quality, setQuality] = useState(0.82)
   const [isExporting, setIsExporting] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -386,6 +389,18 @@ export default function App() {
 
           <div className="control-section export-section">
             <div className="section-label"><span>导出设置</span><FileImage size={14} /></div>
+            <label className="slider-row compact-slider output-edge-slider">
+              <span className="slider-copy"><span>输出最长边</span><output>{settings.outputEdge}px</output></span>
+              <input
+                type="range"
+                min="640"
+                max="1600"
+                step="8"
+                value={settings.outputEdge}
+                style={{ '--progress': `${((settings.outputEdge - 640) / 960) * 100}%` } as CSSProperties}
+                onChange={(event) => updateSlider('outputEdge', Number(event.target.value))}
+              />
+            </label>
             <div className="format-row">
               {(['jpeg', 'png'] as OutputFormat[]).map((item) => (
                 <button type="button" key={item} className={format === item ? 'is-active' : ''} onClick={() => setFormat(item)}>
@@ -398,11 +413,11 @@ export default function App() {
                 <span className="slider-copy"><span>输出质量</span><output>{Math.round(quality * 100)}%</output></span>
                 <input
                   type="range"
-                  min="0.65"
-                  max="1"
+                  min="0.6"
+                  max="0.95"
                   step="0.01"
                   value={quality}
-                  style={{ '--progress': `${((quality - 0.65) / 0.35) * 100}%` } as CSSProperties}
+                  style={{ '--progress': `${((quality - 0.6) / 0.35) * 100}%` } as CSSProperties}
                   onChange={(event) => setQuality(Number(event.target.value))}
                 />
               </label>

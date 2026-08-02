@@ -1,10 +1,14 @@
 import type { CropMode, FilterSettings } from '../types'
 
-const PREVIEW_EDGE = 1200
-const EXPORT_EDGE = 2400
-let noiseTexture: HTMLCanvasElement | null = null
+const PREVIEW_EDGE = 900
 
 const clamp = (value: number, min = 0, max = 255) => Math.min(max, Math.max(min, value))
+
+const noiseAt = (x: number, y: number, seed: number) => {
+  let value = Math.imul(x + seed * 1013, 374761393) ^ Math.imul(y + seed * 1619, 668265263)
+  value = Math.imul(value ^ (value >>> 13), 1274126177)
+  return ((value ^ (value >>> 16)) >>> 0) / 4294967295
+}
 
 const makeCanvas = (width: number, height: number) => {
   const canvas = document.createElement('canvas')
@@ -44,33 +48,6 @@ const getOutputSize = (
   return { width: Math.round(maxEdge * aspect), height: maxEdge }
 }
 
-const buildNoiseTexture = () => {
-  if (noiseTexture) return noiseTexture
-
-  const canvas = makeCanvas(128, 128)
-  const context = canvas.getContext('2d', { willReadFrequently: true })
-  if (!context) return canvas
-
-  const image = context.createImageData(canvas.width, canvas.height)
-  let seed = 9173
-  const random = () => {
-    seed = (seed * 16807) % 2147483647
-    return (seed - 1) / 2147483646
-  }
-
-  for (let index = 0; index < image.data.length; index += 4) {
-    const value = Math.round(random() * 255)
-    image.data[index] = value
-    image.data[index + 1] = value
-    image.data[index + 2] = value
-    image.data[index + 3] = 255
-  }
-
-  context.putImageData(image, 0, 0)
-  noiseTexture = canvas
-  return canvas
-}
-
 const gradePixels = (canvas: HTMLCanvasElement, settings: FilterSettings) => {
   const context = canvas.getContext('2d', { willReadFrequently: true })
   if (!context) return
@@ -84,11 +61,33 @@ const gradePixels = (canvas: HTMLCanvasElement, settings: FilterSettings) => {
   const temperature = settings.temperature / 100
   const magenta = settings.magenta / 100
   const fade = settings.fade / 100
+  const grain = settings.grain / 100
+  const noiseRoughness = settings.noiseRoughness / 100
+  const colorNoise = settings.colorNoise / 100
+  const lowResolution = settings.lowResolution / 100
   const channelShift = Math.round((settings.aberration / 100) * 7)
+  const noiseBlockSize = 2 + Math.round(noiseRoughness * 2)
+  const fineNoiseStrength = grain * 23
+  const coarseNoiseStrength = grain * (8 + noiseRoughness * 27)
+  const colorNoiseStrength = grain * colorNoise * 34
+  const quantizationStep = 1 + Math.round(lowResolution * 5 + noiseRoughness * 3)
   const width = canvas.width
 
   for (let y = 0; y < canvas.height; y += 1) {
+    const rowNoise = (noiseAt(0, Math.floor(y / 2), 73) - 0.5) * noiseRoughness * 5
+    let coarseNoise = 0
+    let redNoise = 0
+    let blueNoise = 0
+
     for (let x = 0; x < width; x += 1) {
+      if (x % noiseBlockSize === 0) {
+        const blockX = Math.floor(x / noiseBlockSize)
+        const blockY = Math.floor(y / noiseBlockSize)
+        coarseNoise = (noiseAt(blockX, blockY, 29) - 0.5) * coarseNoiseStrength
+        redNoise = (noiseAt(blockX, blockY, 41) - 0.5) * colorNoiseStrength
+        blueNoise = (noiseAt(blockX, blockY, 59) - 0.5) * colorNoiseStrength
+      }
+
       const index = (y * width + x) * 4
       const redIndex = (y * width + Math.min(width - 1, x + channelShift)) * 4
       const blueIndex = (y * width + Math.max(0, x - channelShift)) * 4
@@ -120,6 +119,18 @@ const gradePixels = (canvas: HTMLCanvasElement, settings: FilterSettings) => {
       green += fadeLift * 0.89
       blue += fadeLift * 1.12
 
+      const shadowNoiseBoost = 0.78 + (1 - luminance) * 0.58
+      const fineNoise = (noiseAt(x, y, 17) - 0.5) * fineNoiseStrength
+      const luminanceNoise = (fineNoise + coarseNoise + rowNoise) * shadowNoiseBoost
+
+      red += luminanceNoise + redNoise
+      green += luminanceNoise * 0.92
+      blue += luminanceNoise + blueNoise
+
+      red = Math.round(red / quantizationStep) * quantizationStep
+      green = Math.round(green / quantizationStep) * quantizationStep
+      blue = Math.round(blue / quantizationStep) * quantizationStep
+
       data[index] = clamp(red)
       data[index + 1] = clamp(green)
       data[index + 2] = clamp(blue)
@@ -127,6 +138,31 @@ const gradePixels = (canvas: HTMLCanvasElement, settings: FilterSettings) => {
   }
 
   context.putImageData(image, 0, 0)
+}
+
+const applyLowResolution = (canvas: HTMLCanvasElement, amount: number) => {
+  if (amount <= 0) return
+
+  const strength = clamp(amount, 0, 100) / 100
+  const scale = Math.max(0.3, 1 - strength * 0.72)
+  const reducedWidth = Math.max(1, Math.round(canvas.width * scale))
+  const reducedHeight = Math.max(1, Math.round(canvas.height * scale))
+
+  if (reducedWidth >= canvas.width && reducedHeight >= canvas.height) return
+
+  const reduced = makeCanvas(reducedWidth, reducedHeight)
+  const reducedContext = reduced.getContext('2d')
+  const context = canvas.getContext('2d')
+  if (!reducedContext || !context) return
+
+  reducedContext.imageSmoothingEnabled = true
+  reducedContext.imageSmoothingQuality = 'medium'
+  reducedContext.drawImage(canvas, 0, 0, reducedWidth, reducedHeight)
+
+  context.clearRect(0, 0, canvas.width, canvas.height)
+  context.imageSmoothingEnabled = true
+  context.imageSmoothingQuality = strength > 0.66 ? 'low' : 'medium'
+  context.drawImage(reduced, 0, 0, canvas.width, canvas.height)
 }
 
 const drawOriginal = (
@@ -137,7 +173,9 @@ const drawOriginal = (
 ) => {
   const cropAspect = aspectForCrop(crop, image.naturalWidth, image.naturalHeight)
   const cropRect = getCropRect(image.naturalWidth, image.naturalHeight, cropAspect)
-  const output = getOutputSize(image.naturalWidth, image.naturalHeight, crop, maxEdge)
+  const sourceEdge = Math.max(cropRect.width, cropRect.height)
+  const resolvedEdge = Math.min(maxEdge, Math.max(1, Math.round(sourceEdge)))
+  const output = getOutputSize(image.naturalWidth, image.naturalHeight, crop, resolvedEdge)
   canvas.width = output.width
   canvas.height = output.height
 
@@ -167,9 +205,11 @@ export const renderImage = (
   settings: FilterSettings,
   options: { exportSize?: boolean; original?: boolean } = {},
 ) => {
-  const maxEdge = options.exportSize ? EXPORT_EDGE : PREVIEW_EDGE
+  const maxEdge = options.exportSize ? settings.outputEdge : Math.min(PREVIEW_EDGE, settings.outputEdge)
   const output = drawOriginal(image, target, settings.crop, maxEdge)
   if (options.original) return output
+
+  applyLowResolution(target, settings.lowResolution)
 
   const base = makeCanvas(target.width, target.height)
   const baseContext = base.getContext('2d')
@@ -242,18 +282,6 @@ export const renderImage = (
     vignette.addColorStop(1, `rgba(18, 8, 23, ${settings.vignette / 145})`)
     context.fillStyle = vignette
     context.fillRect(0, 0, target.width, target.height)
-  }
-
-  if (settings.grain > 0) {
-    const pattern = context.createPattern(buildNoiseTexture(), 'repeat')
-    if (pattern) {
-      context.save()
-      context.globalCompositeOperation = 'soft-light'
-      context.globalAlpha = settings.grain / 240
-      context.fillStyle = pattern
-      context.fillRect(0, 0, target.width, target.height)
-      context.restore()
-    }
   }
 
   return output

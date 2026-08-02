@@ -3,6 +3,8 @@ export type OutputFormat = 'jpeg' | 'png'
 
 export interface FilterSettings {
   crop: CropMode
+  outputEdge: number
+  lowResolution: number
   exposure: number
   contrast: number
   saturation: number
@@ -11,6 +13,8 @@ export interface FilterSettings {
   bloom: number
   motion: number
   grain: number
+  noiseRoughness: number
+  colorNoise: number
   fade: number
   softness: number
   vignette: number
