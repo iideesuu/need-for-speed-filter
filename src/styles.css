@@ -129,6 +129,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent-brig
   transition: 160ms ease;
 }
 .upload-card:hover { border-color: rgba(235,109,178,.55); background: rgba(235,109,178,.085); }
+.upload-card:disabled { cursor: progress; opacity: .68; }
 .upload-card > span { color: var(--accent-bright); margin-bottom: 2px; }
 .upload-card strong { font-size: 12px; font-weight: 650; }
 .upload-card small { color: var(--muted); font-size: 10px; }

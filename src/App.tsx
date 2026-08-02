@@ -65,10 +65,56 @@ const readableFileSize = (bytes: number) => {
 }
 
 const fileStem = (name: string) => name.replace(/\.[^.]+$/, '') || 'image'
+const IMAGE_FILE_EXTENSION = /\.(?:avif|gif|heic|heif|jpe?g|png|svg|webp)$/i
+const HEIC_FILE_EXTENSION = /\.(?:heic|heif)$/i
+
+const isImageFile = (file: File) => file.type.startsWith('image/') || IMAGE_FILE_EXTENSION.test(file.name)
+
+const isHeicFile = (file: File) => (
+  file.type === 'image/heic'
+  || file.type === 'image/heif'
+  || file.type === 'image/heic-sequence'
+  || file.type === 'image/heif-sequence'
+  || HEIC_FILE_EXTENSION.test(file.name)
+)
+
+const decodeImageBlob = async (blob: Blob) => {
+  const objectUrl = URL.createObjectURL(blob)
+  const element = new Image()
+  element.decoding = 'async'
+
+  try {
+    await new Promise<void>((resolve, reject) => {
+      element.onload = () => resolve()
+      element.onerror = () => reject(new Error('image decode failed'))
+      element.src = objectUrl
+    })
+
+    if (!element.naturalWidth || !element.naturalHeight) throw new Error('invalid image')
+    return { element, objectUrl }
+  } catch (decodeError) {
+    URL.revokeObjectURL(objectUrl)
+    throw decodeError
+  } finally {
+    element.onload = null
+    element.onerror = null
+  }
+}
+
+const convertHeicImage = async (file: File) => {
+  const { heicTo, isHeic } = await import('heic-to')
+  if (!(await isHeic(file))) throw new Error('file is not a valid HEIC image')
+  return heicTo({
+    blob: file,
+    type: 'image/jpeg',
+    quality: 0.95,
+  })
+}
 
 export default function App() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const loadedRef = useRef<LoadedImage | null>(null)
+  const loadRequestRef = useRef(0)
   const [image, setImage] = useState<LoadedImage | null>(null)
   const [settings, setSettings] = useState<FilterSettings>({ ...DEFAULT_SETTINGS })
   const [activePreset, setActivePreset] = useState<string | null>('cover')
@@ -76,6 +122,7 @@ export default function App() {
   const [isDragging, setIsDragging] = useState(false)
   const [format, setFormat] = useState<OutputFormat>('jpeg')
   const [quality, setQuality] = useState(0.9)
+  const [isLoadingFile, setIsLoadingFile] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -87,6 +134,7 @@ export default function App() {
 
   useEffect(() => {
     return () => {
+      loadRequestRef.current += 1
       if (loadedRef.current) URL.revokeObjectURL(loadedRef.current.objectUrl)
     }
   }, [])
@@ -97,50 +145,82 @@ export default function App() {
     return () => window.clearTimeout(timeout)
   }, [notice])
 
-  const chooseFile = () => fileInputRef.current?.click()
+  const chooseFile = () => {
+    if (!isLoadingFile) fileInputRef.current?.click()
+  }
 
   const loadFile = async (file: File) => {
+    const requestId = ++loadRequestRef.current
     setError(null)
+    setNotice(null)
 
-    if (!file.type.startsWith('image/')) {
-      setError('请选择 JPG、PNG、WEBP 等图片文件。')
+    if (!isImageFile(file)) {
+      setIsLoadingFile(false)
+      setError('请选择手机相册中的图片文件。')
+      if (fileInputRef.current) fileInputRef.current.value = ''
       return
     }
     if (file.size === 0 || file.size > 30 * 1024 * 1024) {
+      setIsLoadingFile(false)
       setError('图片需要小于 30 MB，且文件不能为空。')
+      if (fileInputRef.current) fileInputRef.current.value = ''
       return
     }
 
-    const objectUrl = URL.createObjectURL(file)
-    const element = new Image()
-    element.decoding = 'async'
-    element.src = objectUrl
+    const isHeic = isHeicFile(file)
+    setIsLoadingFile(true)
+    setNotice(isHeic ? '正在读取 HEIC / HEIF 照片…' : '正在读取图片…')
 
     try {
-      await element.decode()
-      if (!element.naturalWidth || !element.naturalHeight) throw new Error('invalid image')
+      let decoded: Awaited<ReturnType<typeof decodeImageBlob>>
+
+      try {
+        decoded = await decodeImageBlob(file)
+      } catch (nativeDecodeError) {
+        if (requestId !== loadRequestRef.current) return
+        if (!isHeic) throw nativeDecodeError
+        setNotice('正在兼容转换 HEIC / HEIF 照片…')
+        const converted = await convertHeicImage(file)
+        if (requestId !== loadRequestRef.current) return
+        decoded = await decodeImageBlob(converted)
+      }
+
+      if (requestId !== loadRequestRef.current) {
+        URL.revokeObjectURL(decoded.objectUrl)
+        return
+      }
 
       if (loadedRef.current) URL.revokeObjectURL(loadedRef.current.objectUrl)
       const nextImage = {
-        element,
+        element: decoded.element,
         file,
-        objectUrl,
-        width: element.naturalWidth,
-        height: element.naturalHeight,
+        objectUrl: decoded.objectUrl,
+        width: decoded.element.naturalWidth,
+        height: decoded.element.naturalHeight,
       }
       loadedRef.current = nextImage
       setImage(nextImage)
-      setNotice('图片已载入，仅在此浏览器中处理')
+      setNotice(`${isHeic ? 'HEIC / HEIF 照片' : '图片'}已载入，仅在此浏览器中处理`)
     } catch {
-      URL.revokeObjectURL(objectUrl)
-      setError('图片无法解码，请换一个文件重试。')
+      if (requestId === loadRequestRef.current) {
+        setError(isHeic
+          ? 'HEIC / HEIF 照片无法解码，可能是尺寸过大；请另存为 JPEG 后重试。'
+          : '图片无法解码，请换一个文件重试。')
+      }
+    } finally {
+      if (requestId === loadRequestRef.current) {
+        setIsLoadingFile(false)
+        if (fileInputRef.current) fileInputRef.current.value = ''
+      }
     }
   }
 
   const clearImage = () => {
+    loadRequestRef.current += 1
     if (loadedRef.current) URL.revokeObjectURL(loadedRef.current.objectUrl)
     loadedRef.current = null
     setImage(null)
+    setIsLoadingFile(false)
     setError(null)
     setShowOriginal(false)
     if (fileInputRef.current) fileInputRef.current.value = ''
@@ -217,7 +297,8 @@ export default function App() {
         ref={fileInputRef}
         className="visually-hidden"
         type="file"
-        accept="image/jpeg,image/png,image/webp,image/avif,image/gif,image/svg+xml"
+        accept="image/*,.heic,.heif"
+        disabled={isLoadingFile}
         onChange={(event) => {
           const file = event.target.files?.[0]
           if (file) void loadFile(file)
@@ -269,10 +350,10 @@ export default function App() {
               <button type="button" onClick={clearImage} aria-label="移除图片"><X size={15} /></button>
             </div>
           ) : (
-            <button type="button" className="upload-card" onClick={chooseFile}>
+            <button type="button" className="upload-card" disabled={isLoadingFile} onClick={chooseFile}>
               <span><ImagePlus size={21} /></span>
-              <strong>选择一张图片</strong>
-              <small>或拖拽到工作区</small>
+              <strong>{isLoadingFile ? '正在载入照片…' : '选择一张图片'}</strong>
+              <small>{isLoadingFile ? 'HEIC 照片可能需要数秒' : '支持手机相册，兼容常见 HEIC / HEIF'}</small>
             </button>
           )}
 

@@ -167,7 +167,7 @@ export function PreviewStage({
             <ImagePlus size={28} strokeWidth={1.7} />
           </span>
           <span className="empty-state-title">把照片拖到这里</span>
-          <span className="empty-state-copy">支持 JPG、PNG、WEBP，最大 30 MB</span>
+          <span className="empty-state-copy">支持相册图片，兼容常见 HEIC / HEIF，最大 30 MB</span>
           <span className="empty-state-action">选择图片</span>
         </button>
       )}
