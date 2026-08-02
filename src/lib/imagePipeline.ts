@@ -63,7 +63,7 @@ const getCropRect = (width: number, height: number, aspect: number) => {
   return { x: 0, y: (height - cropHeight) / 2, width, height: cropHeight }
 }
 
-const getOutputSize = (
+export const getOutputSize = (
   sourceWidth: number,
   sourceHeight: number,
   crop: CropMode,

@@ -1,4 +1,4 @@
-import { type CSSProperties, type DragEvent, useCallback, useEffect, useRef, useState } from 'react'
+import { type CSSProperties, type DragEvent, useEffect, useRef, useState } from 'react'
 import {
   Check,
   Download,
@@ -16,14 +16,13 @@ import {
   X,
 } from 'lucide-react'
 import { PreviewStage } from './components/PreviewStage'
-import { exportImage } from './lib/imagePipeline'
+import { exportImage, getOutputSize } from './lib/imagePipeline'
 import { DEFAULT_SETTINGS, PRESETS } from './lib/presets'
 import type {
   CropMode,
   FilterSettings,
   LoadedImage,
   OutputFormat,
-  RenderInfo,
 } from './types'
 
 interface SliderConfig {
@@ -126,7 +125,10 @@ export default function App() {
   const [isExporting, setIsExporting] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [renderInfo, setRenderInfo] = useState<RenderInfo>({ width: 0, height: 0, renderer: 'WebGL' })
+
+  const outputSize = image
+    ? getOutputSize(image.width, image.height, settings.crop, settings.outputEdge)
+    : null
 
   useEffect(() => {
     loadedRef.current = image
@@ -250,14 +252,6 @@ export default function App() {
     setActivePreset('cover')
     setShowOriginal(false)
   }
-
-  const handleRenderInfo = useCallback((next: RenderInfo) => {
-    setRenderInfo((current) => (
-      current.width === next.width && current.height === next.height && current.renderer === next.renderer
-        ? current
-        : next
-    ))
-  }, [])
 
   const download = async () => {
     if (!image || isExporting) return
@@ -399,7 +393,7 @@ export default function App() {
               </button>
             </div>
             <div className="canvas-meta">
-              {image ? `${renderInfo.width} × ${renderInfo.height} 预览` : '等待图片'}
+              {outputSize ? `${outputSize.width} × ${outputSize.height} 导出` : '等待图片'}
             </div>
           </div>
 
@@ -409,7 +403,6 @@ export default function App() {
             showOriginal={showOriginal}
             isDragging={isDragging}
             onChooseFile={chooseFile}
-            onRenderInfo={handleRenderInfo}
           />
 
           <div className="canvas-footer">

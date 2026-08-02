@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Application, Sprite, Texture } from 'pixi.js'
 import { ImagePlus, ScanLine } from 'lucide-react'
 import { renderImage } from '../lib/imagePipeline'
-import type { FilterSettings, LoadedImage, RenderInfo } from '../types'
+import type { FilterSettings, LoadedImage } from '../types'
 
 interface PreviewStageProps {
   image: LoadedImage | null
@@ -10,7 +10,6 @@ interface PreviewStageProps {
   showOriginal: boolean
   isDragging: boolean
   onChooseFile: () => void
-  onRenderInfo: (info: RenderInfo) => void
 }
 
 interface PixiState {
@@ -27,7 +26,6 @@ export function PreviewStage({
   showOriginal,
   isDragging,
   onChooseFile,
-  onRenderInfo,
 }: PreviewStageProps) {
   const hostRef = useRef<HTMLDivElement>(null)
   const fallbackRef = useRef<HTMLCanvasElement>(null)
@@ -131,7 +129,7 @@ export function PreviewStage({
 
     setIsRendering(true)
     const frame = requestAnimationFrame(() => {
-      const output = renderImage(image.element, sourceCanvas, settings, { original: showOriginal })
+      renderImage(image.element, sourceCanvas, settings, { original: showOriginal })
       const pixi = pixiRef.current
 
       if (renderer === 'WebGL' && pixi) {
@@ -146,12 +144,11 @@ export function PreviewStage({
         }
       }
 
-      onRenderInfo({ width: output.width, height: output.height, renderer })
       setIsRendering(false)
     })
 
     return () => cancelAnimationFrame(frame)
-  }, [image, onRenderInfo, renderer, settings, showOriginal])
+  }, [image, renderer, settings, showOriginal])
 
   return (
     <div className={`preview-stage ${isDragging ? 'is-dragging' : ''}`}>

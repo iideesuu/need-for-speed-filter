@@ -29,9 +29,3 @@ export interface LoadedImage {
   width: number
   height: number
 }
-
-export interface RenderInfo {
-  width: number
-  height: number
-  renderer: 'WebGL' | 'Canvas 2D'
-}
