@@ -18,6 +18,7 @@ interface PixiState {
   sprite: Sprite
   texture: Texture
   resize: () => void
+  syncTexture: () => void
 }
 
 export function PreviewStage({
@@ -53,8 +54,11 @@ export function PreviewStage({
         await app.init({
           antialias: true,
           backgroundAlpha: 0,
-          resizeTo: host,
           preference: 'webgl',
+          autoDensity: true,
+          resolution: Math.min(window.devicePixelRatio || 1, 2),
+          width: Math.max(1, host.clientWidth),
+          height: Math.max(1, host.clientHeight),
         })
         if (cancelled) {
           app.destroy(true)
@@ -64,24 +68,47 @@ export function PreviewStage({
         app.canvas.className = 'pixi-canvas'
         host.appendChild(app.canvas)
         const texture = Texture.from(sourceCanvas)
+        texture.dynamic = true
         const sprite = new Sprite(texture)
         sprite.anchor.set(0.5)
         app.stage.addChild(sprite)
 
+        const syncTexture = () => {
+          const width = Math.max(1, sourceCanvas.width)
+          const height = Math.max(1, sourceCanvas.height)
+
+          texture.source.resize(width, height)
+          texture.frame.x = 0
+          texture.frame.y = 0
+          texture.frame.width = width
+          texture.frame.height = height
+          texture.orig.x = 0
+          texture.orig.y = 0
+          texture.orig.width = width
+          texture.orig.height = height
+          texture.source.update()
+          texture.update()
+        }
+
         const resize = () => {
-          const availableWidth = Math.max(1, app.screen.width - 54)
-          const availableHeight = Math.max(1, app.screen.height - 54)
+          const hostWidth = Math.max(1, host.clientWidth)
+          const hostHeight = Math.max(1, host.clientHeight)
+          const padding = Math.min(54, Math.max(24, Math.min(hostWidth, hostHeight) * 0.08))
+          const availableWidth = Math.max(1, hostWidth - padding)
+          const availableHeight = Math.max(1, hostHeight - padding)
           const imageWidth = Math.max(1, sourceCanvas.width)
           const imageHeight = Math.max(1, sourceCanvas.height)
           const scale = Math.min(availableWidth / imageWidth, availableHeight / imageHeight)
-          sprite.position.set(app.screen.width / 2, app.screen.height / 2)
-          sprite.scale.set(Math.max(0.01, scale))
+
+          app.renderer.resize(hostWidth, hostHeight)
+          sprite.position.set(hostWidth / 2, hostHeight / 2)
+          sprite.scale.set(Math.max(0.01, scale), Math.max(0.01, scale))
         }
 
         observer = new ResizeObserver(resize)
         observer.observe(host)
-        pixiRef.current = { app, sprite, texture, resize }
-        texture.source.update()
+        pixiRef.current = { app, sprite, texture, resize, syncTexture }
+        syncTexture()
         resize()
       } catch {
         if (!cancelled) setRenderer('Canvas 2D')
@@ -108,8 +135,7 @@ export function PreviewStage({
       const pixi = pixiRef.current
 
       if (renderer === 'WebGL' && pixi) {
-        pixi.texture.source.resize(sourceCanvas.width, sourceCanvas.height)
-        pixi.texture.source.update()
+        pixi.syncTexture()
         pixi.resize()
       } else {
         const fallback = fallbackRef.current
