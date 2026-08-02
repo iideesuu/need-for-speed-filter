@@ -3,6 +3,7 @@ export type OutputFormat = 'jpeg' | 'png'
 
 export interface FilterSettings {
   crop: CropMode
+  previewEdge: number
   outputEdge: number
   lowResolution: number
   exposure: number

@@ -75,7 +75,7 @@ export default function App() {
   const [showOriginal, setShowOriginal] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [format, setFormat] = useState<OutputFormat>('jpeg')
-  const [quality, setQuality] = useState(0.82)
+  const [quality, setQuality] = useState(0.9)
   const [isExporting, setIsExporting] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -394,10 +394,10 @@ export default function App() {
               <input
                 type="range"
                 min="640"
-                max="1600"
+                max="3200"
                 step="8"
                 value={settings.outputEdge}
-                style={{ '--progress': `${((settings.outputEdge - 640) / 960) * 100}%` } as CSSProperties}
+                style={{ '--progress': `${((settings.outputEdge - 640) / 2560) * 100}%` } as CSSProperties}
                 onChange={(event) => updateSlider('outputEdge', Number(event.target.value))}
               />
             </label>
@@ -413,11 +413,11 @@ export default function App() {
                 <span className="slider-copy"><span>输出质量</span><output>{Math.round(quality * 100)}%</output></span>
                 <input
                   type="range"
-                  min="0.6"
-                  max="0.95"
+                  min="0.65"
+                  max="1"
                   step="0.01"
                   value={quality}
-                  style={{ '--progress': `${((quality - 0.6) / 0.35) * 100}%` } as CSSProperties}
+                  style={{ '--progress': `${((quality - 0.65) / 0.35) * 100}%` } as CSSProperties}
                   onChange={(event) => setQuality(Number(event.target.value))}
                 />
               </label>

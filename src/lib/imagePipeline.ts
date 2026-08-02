@@ -1,6 +1,7 @@
 import type { CropMode, FilterSettings } from '../types'
 
 const PREVIEW_EDGE = 900
+let noiseTexture: HTMLCanvasElement | null = null
 
 const clamp = (value: number, min = 0, max = 255) => Math.min(max, Math.max(min, value))
 
@@ -14,6 +15,33 @@ const makeCanvas = (width: number, height: number) => {
   const canvas = document.createElement('canvas')
   canvas.width = Math.max(1, Math.round(width))
   canvas.height = Math.max(1, Math.round(height))
+  return canvas
+}
+
+const buildNoiseTexture = () => {
+  if (noiseTexture) return noiseTexture
+
+  const canvas = makeCanvas(128, 128)
+  const context = canvas.getContext('2d', { willReadFrequently: true })
+  if (!context) return canvas
+
+  const image = context.createImageData(canvas.width, canvas.height)
+  let seed = 9173
+  const random = () => {
+    seed = (seed * 16807) % 2147483647
+    return (seed - 1) / 2147483646
+  }
+
+  for (let index = 0; index < image.data.length; index += 4) {
+    const value = Math.round(random() * 255)
+    image.data[index] = value
+    image.data[index + 1] = value
+    image.data[index + 2] = value
+    image.data[index + 3] = 255
+  }
+
+  context.putImageData(image, 0, 0)
+  noiseTexture = canvas
   return canvas
 }
 
@@ -61,7 +89,8 @@ const gradePixels = (canvas: HTMLCanvasElement, settings: FilterSettings) => {
   const temperature = settings.temperature / 100
   const magenta = settings.magenta / 100
   const fade = settings.fade / 100
-  const grain = settings.grain / 100
+  const sensorNoiseEnabled = settings.lowResolution > 0 || settings.noiseRoughness > 0 || settings.colorNoise > 0
+  const grain = sensorNoiseEnabled ? settings.grain / 100 : 0
   const noiseRoughness = settings.noiseRoughness / 100
   const colorNoise = settings.colorNoise / 100
   const lowResolution = settings.lowResolution / 100
@@ -119,17 +148,19 @@ const gradePixels = (canvas: HTMLCanvasElement, settings: FilterSettings) => {
       green += fadeLift * 0.89
       blue += fadeLift * 1.12
 
-      const shadowNoiseBoost = 0.78 + (1 - luminance) * 0.58
-      const fineNoise = (noiseAt(x, y, 17) - 0.5) * fineNoiseStrength
-      const luminanceNoise = (fineNoise + coarseNoise + rowNoise) * shadowNoiseBoost
+      if (sensorNoiseEnabled) {
+        const shadowNoiseBoost = 0.78 + (1 - luminance) * 0.58
+        const fineNoise = (noiseAt(x, y, 17) - 0.5) * fineNoiseStrength
+        const luminanceNoise = (fineNoise + coarseNoise + rowNoise) * shadowNoiseBoost
 
-      red += luminanceNoise + redNoise
-      green += luminanceNoise * 0.92
-      blue += luminanceNoise + blueNoise
+        red += luminanceNoise + redNoise
+        green += luminanceNoise * 0.92
+        blue += luminanceNoise + blueNoise
 
-      red = Math.round(red / quantizationStep) * quantizationStep
-      green = Math.round(green / quantizationStep) * quantizationStep
-      blue = Math.round(blue / quantizationStep) * quantizationStep
+        red = Math.round(red / quantizationStep) * quantizationStep
+        green = Math.round(green / quantizationStep) * quantizationStep
+        blue = Math.round(blue / quantizationStep) * quantizationStep
+      }
 
       data[index] = clamp(red)
       data[index + 1] = clamp(green)
@@ -173,9 +204,7 @@ const drawOriginal = (
 ) => {
   const cropAspect = aspectForCrop(crop, image.naturalWidth, image.naturalHeight)
   const cropRect = getCropRect(image.naturalWidth, image.naturalHeight, cropAspect)
-  const sourceEdge = Math.max(cropRect.width, cropRect.height)
-  const resolvedEdge = Math.min(maxEdge, Math.max(1, Math.round(sourceEdge)))
-  const output = getOutputSize(image.naturalWidth, image.naturalHeight, crop, resolvedEdge)
+  const output = getOutputSize(image.naturalWidth, image.naturalHeight, crop, maxEdge)
   canvas.width = output.width
   canvas.height = output.height
 
@@ -205,10 +234,11 @@ export const renderImage = (
   settings: FilterSettings,
   options: { exportSize?: boolean; original?: boolean } = {},
 ) => {
-  const maxEdge = options.exportSize ? settings.outputEdge : Math.min(PREVIEW_EDGE, settings.outputEdge)
+  const maxEdge = options.exportSize ? settings.outputEdge : (settings.previewEdge || PREVIEW_EDGE)
   const output = drawOriginal(image, target, settings.crop, maxEdge)
   if (options.original) return output
 
+  const sensorNoiseEnabled = settings.lowResolution > 0 || settings.noiseRoughness > 0 || settings.colorNoise > 0
   applyLowResolution(target, settings.lowResolution)
 
   const base = makeCanvas(target.width, target.height)
@@ -282,6 +312,18 @@ export const renderImage = (
     vignette.addColorStop(1, `rgba(18, 8, 23, ${settings.vignette / 145})`)
     context.fillStyle = vignette
     context.fillRect(0, 0, target.width, target.height)
+  }
+
+  if (!sensorNoiseEnabled && settings.grain > 0) {
+    const pattern = context.createPattern(buildNoiseTexture(), 'repeat')
+    if (pattern) {
+      context.save()
+      context.globalCompositeOperation = 'soft-light'
+      context.globalAlpha = settings.grain / 240
+      context.fillStyle = pattern
+      context.fillRect(0, 0, target.width, target.height)
+      context.restore()
+    }
   }
 
   return output
