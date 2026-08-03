@@ -72,7 +72,7 @@ App.tsx
 
 ### `index.html`
 
-源码：[index.html](./need-for-speed-filter/index.html)
+源码：[index.html](./index.html)
 
 核心内容：
 
@@ -92,7 +92,7 @@ export default App
 
 ### `main.tsx`
 
-源码：[src/main.tsx](./need-for-speed-filter/src/main.tsx)
+源码：[src/main.tsx](./src/main.tsx)
 
 ```tsx
 import { createRoot } from 'react-dom/client'
@@ -146,7 +146,7 @@ import React from 'react'
 
 ## 三、公共类型
 
-源码：[src/types.ts](./need-for-speed-filter/src/types.ts)
+源码：[src/types.ts](./src/types.ts)
 
 ### 联合类型
 
@@ -222,7 +222,7 @@ export interface LoadedImage {
 
 ## 四、预设系统
 
-源码：[src/lib/presets.ts](./need-for-speed-filter/src/lib/presets.ts)
+源码：[src/lib/presets.ts](./src/lib/presets.ts)
 
 ### 预设类型
 
@@ -283,7 +283,7 @@ export const DEFAULT_SETTINGS = { ...originalCover }
 
 ## 五、主组件 `App`
 
-源码：[src/App.tsx](./need-for-speed-filter/src/App.tsx) 是整个应用的控制中心。
+源码：[src/App.tsx](./src/App.tsx) 是整个应用的控制中心。
 
 ### 1. 导入语法
 
@@ -841,7 +841,7 @@ TypeScript 的 `CSSProperties` 默认不知道 `--progress` 这种自定义属�
 
 ## 十二、预览组件
 
-源码：[src/components/PreviewStage.tsx](./need-for-speed-filter/src/components/PreviewStage.tsx)
+源码：[src/components/PreviewStage.tsx](./src/components/PreviewStage.tsx)
 
 ### Props 接口
 
@@ -989,7 +989,7 @@ return () => cancelAnimationFrame(frame)
 
 ## 十三、图片处理算法
 
-源码：[src/lib/imagePipeline.ts](./need-for-speed-filter/src/lib/imagePipeline.ts)
+源码：[src/lib/imagePipeline.ts](./src/lib/imagePipeline.ts)
 
 完整顺序是：
 
@@ -1354,7 +1354,7 @@ format === 'jpeg' ? 'jpg' : 'png'
 
 ## 十五、CSS 结构
 
-源码：[src/styles.css](./need-for-speed-filter/src/styles.css)
+源码：[src/styles.css](./src/styles.css)
 
 ### CSS 变量
 
@@ -1465,7 +1465,7 @@ React 根据状态添加 `is-active`、`is-dragging`、`is-error`，CSS 负责�
 
 ### `package.json`
 
-源码：[package.json](./need-for-speed-filter/package.json)
+源码：[package.json](./package.json)
 
 主要依赖：
 
@@ -1501,7 +1501,7 @@ React 根据状态添加 `is-active`、`is-dragging`、`is-error`，CSS 负责�
 
 ### `vite.config.ts`
 
-源码：[vite.config.ts](./need-for-speed-filter/vite.config.ts)
+源码：[vite.config.ts](./vite.config.ts)
 
 ```ts
 export default defineConfig({
@@ -1516,7 +1516,7 @@ export default defineConfig({
 
 ### `tsconfig.json`
 
-源码：[tsconfig.json](./need-for-speed-filter/tsconfig.json)
+源码：[tsconfig.json](./tsconfig.json)
 
 重要配置：
 
@@ -1533,9 +1533,9 @@ export default defineConfig({
 
 ### Docker
 
-[Dockerfile](./need-for-speed-filter/Dockerfile) 使用 Alpine Linux，安装 Node 和 npm，然后运行 Vite。
+[Dockerfile](./Dockerfile) 使用 Alpine Linux，安装 Node 和 npm，然后运行 Vite。
 
-[compose.yaml](./need-for-speed-filter/compose.yaml)：
+[compose.yaml](./compose.yaml)：
 
 ```yaml
 ports:
