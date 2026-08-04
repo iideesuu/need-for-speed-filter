@@ -17,13 +17,14 @@ import {
 } from 'lucide-react'
 import { PreviewStage } from './components/PreviewStage'
 import { exportImage, getOutputSize } from './lib/imagePipeline'
-import { DEFAULT_SETTINGS, PRESETS } from './lib/presets'
+import { DEFAULT_SETTINGS, PRESET_CATEGORIES, PRESETS } from './lib/presets'
 import type {
   CropMode,
   FilterSettings,
   LoadedImage,
   OutputFormat,
 } from './types'
+import type { PresetCategoryId } from './lib/presets'
 
 interface SliderConfig {
   key: keyof Omit<FilterSettings, 'crop'>
@@ -37,7 +38,7 @@ interface SliderConfig {
 const SLIDERS: SliderConfig[] = [
   { key: 'exposure', label: '曝光', min: -0.8, max: 1, step: 0.01, format: (v) => `${v > 0 ? '+' : ''}${v.toFixed(2)}` },
   { key: 'contrast', label: '反差', min: -35, max: 40, step: 1, format: (v) => `${v > 0 ? '+' : ''}${v}` },
-  { key: 'saturation', label: '饱和度', min: -45, max: 45, step: 1, format: (v) => `${v > 0 ? '+' : ''}${v}` },
+  { key: 'saturation', label: '饱和度', min: -100, max: 45, step: 1, format: (v) => `${v > 0 ? '+' : ''}${v}` },
   { key: 'temperature', label: '色温', min: -45, max: 45, step: 1, format: (v) => `${v > 0 ? '+' : ''}${v}` },
   { key: 'magenta', label: '紫红偏色', min: 0, max: 100, step: 1, format: (v) => `${v}%` },
   { key: 'bloom', label: '高光溢出', min: 0, max: 100, step: 1, format: (v) => `${v}%` },
@@ -117,6 +118,7 @@ export default function App() {
   const [image, setImage] = useState<LoadedImage | null>(null)
   const [settings, setSettings] = useState<FilterSettings>({ ...DEFAULT_SETTINGS })
   const [activePreset, setActivePreset] = useState<string | null>('cover')
+  const [activeCategory, setActiveCategory] = useState<PresetCategoryId>('y2k')
   const [showOriginal, setShowOriginal] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [format, setFormat] = useState<OutputFormat>('jpeg')
@@ -240,6 +242,7 @@ export default function App() {
     if (!preset) return
     setSettings({ ...preset.settings })
     setActivePreset(preset.id)
+    setActiveCategory(preset.category)
   }
 
   const updateSlider = (key: SliderConfig['key'], value: number) => {
@@ -250,8 +253,11 @@ export default function App() {
   const reset = () => {
     setSettings({ ...DEFAULT_SETTINGS })
     setActivePreset('cover')
+    setActiveCategory('y2k')
     setShowOriginal(false)
   }
+
+  const visiblePresets = PRESETS.filter((preset) => preset.category === activeCategory)
 
   const download = async () => {
     if (!image || isExporting) return
@@ -304,7 +310,7 @@ export default function App() {
           <span className="brand-mark"><Gauge size={20} /></span>
           <span className="brand-name">NFS LAB</span>
           <span className="brand-divider" />
-          <span className="brand-subtitle">Y2K IMAGE FILTER</span>
+          <span className="brand-subtitle">Y2K · FUJIFILM IMAGE FILTER</span>
         </div>
 
         <div className="topbar-actions">
@@ -356,8 +362,30 @@ export default function App() {
             <Sparkles size={14} />
           </div>
 
+          <div className="preset-categories" role="tablist" aria-label="风格分类">
+            {PRESET_CATEGORIES.map((category) => {
+              const count = PRESETS.filter((preset) => preset.category === category.id).length
+              return (
+                <button
+                  type="button"
+                  role="tab"
+                  key={category.id}
+                  aria-selected={activeCategory === category.id}
+                  className={activeCategory === category.id ? 'is-active' : ''}
+                  onClick={() => setActiveCategory(category.id)}
+                >
+                  <strong>{category.name}</strong>
+                  <small>{String(count).padStart(2, '0')} 个预设</small>
+                </button>
+              )
+            })}
+          </div>
+          <p className="preset-category-description">
+            {PRESET_CATEGORIES.find((category) => category.id === activeCategory)?.description}
+          </p>
+
           <div className="preset-list">
-            {PRESETS.map((preset, index) => (
+            {visiblePresets.map((preset, index) => (
               <button
                 type="button"
                 key={preset.id}

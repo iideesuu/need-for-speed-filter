@@ -32,7 +32,7 @@ need-for-speed-filter/
    ├─ components/
    │  └─ PreviewStage.tsx     图片预览组件
    └─ lib/
-      ├─ presets.ts           8 个滤镜预设
+      ├─ presets.ts           16 个滤镜预设（Y2K / 富士胶片）
       └─ imagePipeline.ts     Canvas 图片处理算法
 ```
 
@@ -233,11 +233,14 @@ export interface FilterPreset {
   subtitle: string
   swatch: string
   settings: FilterSettings
+  category: 'y2k' | 'fujifilm'
   isNoise?: boolean
 }
 ```
 
 `isNoise?: boolean` 中的 `?` 表示可选属性。
+
+每个预设通过 `category` 归入 `y2k` 或 `fujifilm`，左侧分类切换只展示当前组的八个预设。
 
 ### 基础预设
 
@@ -274,6 +277,8 @@ const settings = Object.assign({}, originalCover, {
 ```
 
 因为 `FilterSettings` 的属性都是数字或字符串，所以浅拷贝已经足够。
+
+富士胶片分类的八个预设直接使用同一套 `FilterSettings`，通过不同的曝光、反差、饱和度、色温、褪色和颗粒组合，拟合 PROVIA、Velvia、ASTIA、Classic Chrome、Classic Neg、Nostalgic Neg.、ETERNA 与 ACROS 的观感。
 
 ```ts
 export const DEFAULT_SETTINGS = { ...originalCover }
@@ -752,7 +757,7 @@ if (event.currentTarget === event.target) {
 ### 列表渲染
 
 ```tsx
-{PRESETS.map((preset, index) => (
+{visiblePresets.map((preset, index) => (
   <button key={preset.id}>
     {preset.name}
   </button>
