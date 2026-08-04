@@ -40,7 +40,7 @@ const SLIDERS: SliderConfig[] = [
   { key: 'contrast', label: '反差', min: -35, max: 40, step: 1, format: (v) => `${v > 0 ? '+' : ''}${v}` },
   { key: 'saturation', label: '饱和度', min: -100, max: 45, step: 1, format: (v) => `${v > 0 ? '+' : ''}${v}` },
   { key: 'temperature', label: '色温', min: -45, max: 45, step: 1, format: (v) => `${v > 0 ? '+' : ''}${v}` },
-  { key: 'magenta', label: '紫红偏色', min: 0, max: 100, step: 1, format: (v) => `${v}%` },
+  { key: 'magenta', label: '紫红 / 绿偏', min: -100, max: 100, step: 1, format: (v) => `${v > 0 ? '+' : ''}${v}%` },
   { key: 'bloom', label: '高光溢出', min: 0, max: 100, step: 1, format: (v) => `${v}%` },
   { key: 'motion', label: '运动拖影', min: 0, max: 100, step: 1, format: (v) => `${v}%` },
   { key: 'lowResolution', label: '低清晰度', min: 0, max: 100, step: 1, format: (v) => `${v}%` },
@@ -310,7 +310,7 @@ export default function App() {
           <span className="brand-mark"><Gauge size={20} /></span>
           <span className="brand-name">NFS LAB</span>
           <span className="brand-divider" />
-          <span className="brand-subtitle">Y2K · FUJIFILM IMAGE FILTER</span>
+          <span className="brand-subtitle">Y2K · FUJIFILM · CCD IMAGE FILTER</span>
         </div>
 
         <div className="topbar-actions">

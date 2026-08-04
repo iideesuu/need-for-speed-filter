@@ -32,7 +32,7 @@ need-for-speed-filter/
    ├─ components/
    │  └─ PreviewStage.tsx     图片预览组件
    └─ lib/
-      ├─ presets.ts           16 个滤镜预设（Y2K / 富士胶片）
+      ├─ presets.ts           24 个滤镜预设（Y2K / 富士胶片 / CCD）
       └─ imagePipeline.ts     Canvas 图片处理算法
 ```
 
@@ -190,7 +190,7 @@ export interface FilterSettings {
 | `contrast` | 对比度 |
 | `saturation` | 饱和度 |
 | `temperature` | 色温 |
-| `magenta` | 紫红偏色 |
+| `magenta` | 紫红 / 绿偏 |
 | `bloom` | 高光溢出 |
 | `motion` | 横向拖影 |
 | `grain` | 亮度噪点 |
@@ -233,14 +233,14 @@ export interface FilterPreset {
   subtitle: string
   swatch: string
   settings: FilterSettings
-  category: 'y2k' | 'fujifilm'
+  category: 'y2k' | 'fujifilm' | 'ccd'
   isNoise?: boolean
 }
 ```
 
 `isNoise?: boolean` 中的 `?` 表示可选属性。
 
-每个预设通过 `category` 归入 `y2k` 或 `fujifilm`，左侧分类切换只展示当前组的八个预设。
+每个预设通过 `category` 归入 `y2k`、`fujifilm` 或 `ccd`，左侧分类切换只展示当前组的八个预设。
 
 ### 基础预设
 
@@ -279,6 +279,8 @@ const settings = Object.assign({}, originalCover, {
 因为 `FilterSettings` 的属性都是数字或字符串，所以浅拷贝已经足够。
 
 富士胶片分类的八个预设直接使用同一套 `FilterSettings`，通过不同的曝光、反差、饱和度、色温、褪色和颗粒组合，拟合 PROVIA、Velvia、ASTIA、Classic Chrome、Classic Neg、Nostalgic Neg.、ETERNA 与 ACROS 的观感。
+
+CCD 分类的八个预设则额外使用低工作分辨率、彩色噪声、色差和正负紫红偏色，模拟日系冷白、奶油柔光、冰蓝夜景、暖黄室内、复古绿偏、霓虹街头、红眼派对与早期手机观感。
 
 ```ts
 export const DEFAULT_SETTINGS = { ...originalCover }
@@ -1206,9 +1208,9 @@ blue -= temperature * 28
 
 所以画面变暖。
 
-### 11. 紫红偏色和褪色
+### 11. 紫红 / 绿偏和褪色
 
-紫红偏色更偏向阴影：
+正值产生紫红偏色，负值产生绿色偏色，并且都更偏向阴影：
 
 ```ts
 const shadowWeight =

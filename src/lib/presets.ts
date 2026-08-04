@@ -10,7 +10,7 @@ export interface FilterPreset {
   isNoise?: boolean
 }
 
-export type PresetCategoryId = 'y2k' | 'fujifilm'
+export type PresetCategoryId = 'y2k' | 'fujifilm' | 'ccd'
 
 export interface PresetCategory {
   id: PresetCategoryId
@@ -21,6 +21,7 @@ export interface PresetCategory {
 export const PRESET_CATEGORIES: PresetCategory[] = [
   { id: 'y2k', name: 'Y2K 风格', description: '数码闪光 · 低清噪点 · 速度感' },
   { id: 'fujifilm', name: '富士胶片', description: '经典模拟 · 电影色彩 · 细腻颗粒' },
+  { id: 'ccd', name: 'CCD 风格', description: '卡片相机 · 直闪偏色 · 传感器噪点' },
 ]
 
 const originalCover: FilterSettings = {
@@ -310,6 +311,111 @@ export const PRESETS: FilterPreset[] = [
       exposure: 0.03, contrast: 24, saturation: -100, temperature: 0, magenta: 0,
       bloom: 0, motion: 0, grain: 25, noiseRoughness: 0, colorNoise: 0, fade: 0,
       softness: 1, vignette: 12, aberration: 0,
+    },
+  },
+  {
+    id: 'ccd-cool-white',
+    category: 'ccd',
+    name: '日系冷白',
+    subtitle: '冷白肤色 · 轻微过曝 · 清透低反差',
+    swatch: 'linear-gradient(145deg, #f5f4ee 0%, #d7e7e5 38%, #91b9c4 68%, #566f86 100%)',
+    settings: {
+      crop: 'original', previewEdge: 1000, outputEdge: 2048, lowResolution: 8,
+      exposure: 0.26, contrast: -14, saturation: -10, temperature: -12, magenta: 4,
+      bloom: 13, motion: 0, grain: 12, noiseRoughness: 5, colorNoise: 2, fade: 12,
+      softness: 3, vignette: 2, aberration: 1,
+    },
+  },
+  {
+    id: 'ccd-creamy-glow',
+    category: 'ccd',
+    name: '奶油柔光',
+    subtitle: '暖调肤色 · 高光扩散 · 柔焦人像',
+    swatch: 'linear-gradient(145deg, #fff2dd 0%, #efcfbd 37%, #c69a9d 68%, #766778 100%)',
+    settings: {
+      crop: 'original', previewEdge: 1000, outputEdge: 2048, lowResolution: 6,
+      exposure: 0.22, contrast: -18, saturation: -4, temperature: 11, magenta: 7,
+      bloom: 24, motion: 0, grain: 10, noiseRoughness: 3, colorNoise: 1, fade: 16,
+      softness: 9, vignette: 2, aberration: 1,
+    },
+  },
+  {
+    id: 'ccd-icy-night',
+    category: 'ccd',
+    name: '冰蓝夜景',
+    subtitle: '蓝青阴影 · 冷色灯光 · 夜景暗角',
+    swatch: 'linear-gradient(145deg, #cce5eb 0%, #77a7bd 35%, #385b83 66%, #18233f 100%)',
+    settings: {
+      crop: 'original', previewEdge: 900, outputEdge: 1800, lowResolution: 15,
+      exposure: -0.05, contrast: 18, saturation: 8, temperature: -24, magenta: 8,
+      bloom: 22, motion: 0, grain: 25, noiseRoughness: 18, colorNoise: 9, fade: 5,
+      softness: 3, vignette: 18, aberration: 4,
+    },
+  },
+  {
+    id: 'ccd-warm-indoor',
+    category: 'ccd',
+    name: '暖黄室内',
+    subtitle: '钨丝灯色温 · 家庭快照 · 暖调颗粒',
+    swatch: 'linear-gradient(145deg, #f6dfa7 0%, #d8a565 38%, #94705d 68%, #49404a 100%)',
+    settings: {
+      crop: 'original', previewEdge: 900, outputEdge: 1800, lowResolution: 12,
+      exposure: 0.12, contrast: -8, saturation: -6, temperature: 24, magenta: 0,
+      bloom: 12, motion: 0, grain: 20, noiseRoughness: 10, colorNoise: 7, fade: 14,
+      softness: 5, vignette: 10, aberration: 2,
+    },
+  },
+  {
+    id: 'ccd-green-cast',
+    category: 'ccd',
+    name: '复古绿偏',
+    subtitle: '青绿阴影 · 低饱和 · 老卡片机色偏',
+    swatch: 'linear-gradient(145deg, #d8dfb8 0%, #9bb295 37%, #5d8278 67%, #344f50 100%)',
+    settings: {
+      crop: 'original', previewEdge: 900, outputEdge: 1800, lowResolution: 18,
+      exposure: 0.08, contrast: -5, saturation: -20, temperature: 3, magenta: -22,
+      bloom: 8, motion: 0, grain: 24, noiseRoughness: 15, colorNoise: 6, fade: 21,
+      softness: 4, vignette: 9, aberration: 3,
+    },
+  },
+  {
+    id: 'ccd-neon-street',
+    category: 'ccd',
+    name: '霓虹街头',
+    subtitle: '蓝紫霓虹 · 高反差 · 彩色传感器噪声',
+    swatch: 'linear-gradient(145deg, #eb78bf 0%, #8d5fd2 35%, #296fa0 67%, #172441 100%)',
+    settings: {
+      crop: 'original', previewEdge: 900, outputEdge: 1600, lowResolution: 23,
+      exposure: 0.04, contrast: 25, saturation: 31, temperature: -12, magenta: 28,
+      bloom: 26, motion: 3, grain: 34, noiseRoughness: 28, colorNoise: 20, fade: 3,
+      softness: 2, vignette: 18, aberration: 7,
+    },
+  },
+  {
+    id: 'ccd-red-eye-party',
+    category: 'ccd',
+    name: '红眼派对',
+    subtitle: '正面硬闪 · 深色背景 · 红紫派对肤色',
+    swatch: 'linear-gradient(145deg, #f8eee8 0%, #e18e9f 34%, #9a304f 62%, #241522 100%)',
+    settings: {
+      crop: 'original', previewEdge: 900, outputEdge: 1600, lowResolution: 20,
+      exposure: 0.32, contrast: 25, saturation: 5, temperature: 3, magenta: 32,
+      bloom: 8, motion: 0, grain: 28, noiseRoughness: 22, colorNoise: 12, fade: 2,
+      softness: 0, vignette: 30, aberration: 3,
+    },
+  },
+  {
+    id: 'ccd-early-phone',
+    category: 'ccd',
+    name: '早期手机',
+    subtitle: '低分辨率 · 色块断层 · 粗彩噪与色差',
+    swatch: 'linear-gradient(145deg, #c9d1c6 0%, #8b9c99 35%, #6a647d 66%, #2c2938 100%)',
+    isNoise: true,
+    settings: {
+      crop: 'original', previewEdge: 720, outputEdge: 960, lowResolution: 75,
+      exposure: 0.05, contrast: 12, saturation: -18, temperature: -8, magenta: -6,
+      bloom: 2, motion: 0, grain: 70, noiseRoughness: 70, colorNoise: 45, fade: 12,
+      softness: 1, vignette: 13, aberration: 15,
     },
   },
 ]
